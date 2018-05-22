@@ -1,5 +1,8 @@
 package com.example.nazwa.myapplication;
 
+import com.orbotix.common.Robot;
+import com.orbotix.common.RobotChangedStateListener;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,6 +19,7 @@ public class Server {
     MainActivity activity;
     ServerSocket serverSocket;
     String message = "";
+    String command = "";
     static final int socketServerPORT = 8080;
 
     public Server(MainActivity activity) {
@@ -24,11 +28,10 @@ public class Server {
         socketServerThread.start();
     }
 
+
     public int getPort() {
         return socketServerPORT;
     }
-
-
 
     private class SocketServerThread extends Thread {
 
@@ -64,10 +67,12 @@ public class Server {
                     while ((inputLine = in.readLine()) != null) {
                         //System.out.println("server got:" + inputLine);
                         message = "Recieved: "+ inputLine;
+                        command = inputLine;
                         activity.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 activity.SocketMessegeRecievedField.setText(message);
+                                activity.runCommand(command);
                             }
                         });
                     }
@@ -106,14 +111,15 @@ public class Server {
                 PrintStream printStream = new PrintStream(outputStream);
                 printStream.print(msgReply);
                 printStream.close();
-
                 message += "replayed: " + msgReply + "\n";
+                command = msgReply;
 
                 activity.runOnUiThread(new Runnable() {
 
                     @Override
                     public void run() {
-                        activity.SocketConnectionInfoField.setText(message);
+                        activity.CurrentCommandField.setText(message);
+                        activity.runCommand(command);
                     }
                 });
 

@@ -1,16 +1,11 @@
 package com.example.nazwa.myapplication;
 
 import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.format.Formatter;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -21,16 +16,13 @@ import com.orbotix.common.Robot;
 import com.orbotix.common.RobotChangedStateListener;
 import com.orbotix.le.RobotLE;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
-import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements RobotChangedStateListener{
     TextView IPStatusField;
@@ -38,11 +30,17 @@ public class MainActivity extends AppCompatActivity implements RobotChangedState
     TextView SocketConnectionInfoField;
     TextView SocketMessegeRecievedField;
     TextView CurrentCommandField;
-    Server server;
+    //Server server;
+    Sokecik server;
     RobotController robotController;
     public static  final int REQUEST_ENABLE_BT = 1;
 
     private ConvenienceRobot mRobot;
+
+
+    String ipAddress = "127.0.0.1";
+    InetSocketAddress inetSockAddress;
+    Sokecik wsServer;
 
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 42;
     @Override
@@ -56,9 +54,15 @@ public class MainActivity extends AppCompatActivity implements RobotChangedState
         SocketMessegeRecievedField = (TextView)findViewById(R.id.SocketMessegeRecievedField);
         CurrentCommandField = (TextView)findViewById(R.id.CurrentCommandField);
 
-        server = new Server(this);
+        //server = new Server(this);
+        ipAddress = getIpAddress();
+        System.out.println(ipAddress);
+        this.IPStatusField.setText(ipAddress);
+        inetSockAddress  = new InetSocketAddress(ipAddress, 38301);
+        wsServer = new Sokecik(inetSockAddress, this);
+        wsServer.start();
 
-        IPStatusField.setText(server.getIpAddress() + ":" + server.getPort());
+        //IPStatusField.setText(server.getIpAddress() + ":" + server.getPort());
 
         DualStackDiscoveryAgent.getInstance().addRobotStateListener( this );
         if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ) {
@@ -183,6 +187,10 @@ public class MainActivity extends AppCompatActivity implements RobotChangedState
             }
         }
     }
+    void testCommand(String command){
+        System.out.println("TEST "+ command);
+        runCommand(command);
+    }
 
     void runCommand(String command){
         final String message = command;
@@ -194,8 +202,18 @@ public class MainActivity extends AppCompatActivity implements RobotChangedState
             }
         });
 
-        if( mRobot == null )
+        if( mRobot == null ) {
+            final String noRobot = "No robot";
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    CurrentCommandField.setText(noRobot);
+                }
+            });
             return;
+        }
+
 
         if(command.equals("setLed_red")){
             mRobot.setLed( 1.0f, 0.0f, 0.0f );
@@ -233,5 +251,36 @@ public class MainActivity extends AppCompatActivity implements RobotChangedState
                 blink(!lit);
             }
         }, 2000);
+    }
+
+
+    public String getIpAddress() {
+        String ip = "";
+        try {
+            Enumeration<NetworkInterface> enumNetworkInterfaces = NetworkInterface
+                    .getNetworkInterfaces();
+            while (enumNetworkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = enumNetworkInterfaces
+                        .nextElement();
+                Enumeration<InetAddress> enumInetAddress = networkInterface
+                        .getInetAddresses();
+                while (enumInetAddress.hasMoreElements()) {
+                    InetAddress inetAddress = enumInetAddress
+                            .nextElement();
+
+                    if (inetAddress.isSiteLocalAddress()) {
+                        //ip += "Server running at : "
+                        ip = inetAddress.getHostAddress();
+                    }
+                }
+            }
+
+        } catch (SocketException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            ip += "Something Wrong! " + e.toString() + "\n";
+        }
+
+        return ip;
     }
 }

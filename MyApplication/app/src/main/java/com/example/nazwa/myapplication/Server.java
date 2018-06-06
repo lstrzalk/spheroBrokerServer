@@ -26,6 +26,8 @@ public class Server {
         this.activity = activity;
         Thread socketServerThread = new Thread(new SocketServerThread());
         socketServerThread.start();
+
+
     }
 
 
@@ -42,6 +44,14 @@ public class Server {
             try {
                 // create ServerSocket using specified port
                 serverSocket = new ServerSocket(socketServerPORT);
+
+                final String ip = getIpAddress();
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        activity.BluetoothStatusField.setText(ip);
+                    }
+                });
 
                 while (true) {
                     // block the call until connection is created and return

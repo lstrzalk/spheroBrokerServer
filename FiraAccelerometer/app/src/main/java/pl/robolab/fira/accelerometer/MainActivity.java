@@ -21,6 +21,7 @@ import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
@@ -33,10 +34,12 @@ import java.util.Enumeration;
 public class MainActivity extends Activity implements SensorEventListener {
 
     String ipAddress = "";
+    String command = "Recieved no commands";
     int port = 38301;
     InetSocketAddress inetSockAddress;
     MyWebSocketServer wsocket;
-
+    TextView commandField;
+    TextView ipField;
     // Message types sent from the BluetoothCommandService Handler
     public static final int MESSAGE_DEVICE_NAME = 3;
     public static final int MESSAGE_CONNECT_FAILED = 5;
@@ -60,10 +63,28 @@ public class MainActivity extends Activity implements SensorEventListener {
     private SensorManager mSensorManager;
     private Sensor senAccelerometer;
 
+    public void onMessageFromSocket(String message){
+        System.out.println("Main activity got msg"+ message);
+        command = message;
+
+
+        // Log.d("Main", message);
+        if(message.startsWith("["))
+            sendSpeedCommand(message);
+    }
 
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        //Toast.makeText(this, "IP: "+ ipAddress+":" + port, Toast.LENGTH_LONG).show();
+        ipField = (TextView) findViewById(R.id.IPAddressField);
+        ipField.setText(ipAddress+":"+port);
+
+        commandField = (TextView) findViewById(R.id.CommandField);
+        commandField.setText(command);
+
+        System.out.println(command);
+
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             sendSpeedCommand(0, 0);
             if (exitToast.getView().isShown()) {
@@ -114,6 +135,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             e.printStackTrace();
         }
     }
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -167,8 +190,12 @@ public class MainActivity extends Activity implements SensorEventListener {
         ipAddress = getIpAddress();
         inetSockAddress  = new InetSocketAddress(ipAddress, port);
         wsocket = new MyWebSocketServer(inetSockAddress, this);
+        wsocket.setConnectionLostTimeout(30);
         wsocket.start();
         Log.d("WebSocket", "Started with address: " + ipAddress +":" + port);
+
+
+
 
         getWindowManager().getDefaultDisplay().getSize(mResolution);
         Log.v("InitLog", "onCreate");
@@ -203,7 +230,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         getActionBar().setDisplayShowTitleEnabled(false);
         Log.v("InitLog", "onStart");
-
+        Toast.makeText(this, "IP: "+ ipAddress+":" + port, Toast.LENGTH_LONG).show();
         // If BT is not on, request that it be enabled.
         // setupCommand() will then be called during onActivityResult
         if (!mBluetoothAdapter.isEnabled()) {
@@ -220,7 +247,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                 setupCommand();
         }
 
-
     }
 
     @Override
@@ -235,6 +261,15 @@ public class MainActivity extends Activity implements SensorEventListener {
         Log.v("InitLog", "onResume");
 
         mSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+        ipField = (TextView) findViewById(R.id.IPAddressField);
+        if(ipField != null)
+            ipField.setText(ipAddress+":"+port);
+
+        commandField = (TextView) findViewById(R.id.CommandField);
+
+        if(commandField != null)
+            commandField.setText(command);
 
         if (mCommandService != null) {
             if (mCommandService.getState() == BluetoothCommandService.STATE_NONE) {
@@ -253,6 +288,13 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        try {
+            wsocket.stop();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         if (mCommandService != null)
             mCommandService.stop();
@@ -360,11 +402,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     }
 
-    public void onMessageFromScoket(String message){
-        Log.d("Main", message);
-        if(message.startsWith("["))
-            sendSpeedCommand(message);
-    }
+
 
     public String getIpAddress() {
         String ip = "";

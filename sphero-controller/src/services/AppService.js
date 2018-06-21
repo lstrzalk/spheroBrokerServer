@@ -1,24 +1,41 @@
+
 export default class SpheroService {
     constructor(){
-        this.sendFirstRequest();  
     }
     sendFirstRequest = function(){
-        let xhr = new XMLHttpRequest();
-        xhr.open('GET', '/spheroController/config', true);
-        let self = this;
-        xhr.onreadystatechange = function() {
-        if (xhr.readyState == XMLHttpRequest.DONE) {
-            let json = xhr.responseText;
-            self.config = JSON.parse(json);
-        }
-        }
-        xhr.send(null);
+        return this.makeRequest('GET', '/spheroController/config');
+
     }
+
+    makeRequest = function(method, url){
+        return new Promise(function(resolve, reject){
+            let xhr = new XMLHttpRequest();
+            xhr.open(method, url, true);
+            xhr.onload = function() {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    resolve(xhr.response)
+                } else {
+                    reject({
+                        status: this.status,
+                        statusText: xhr.statusText
+                      });
+                }
+            }   
+            xhr.onerror = function () {
+                reject({
+                  status: this.status,
+                  statusText: xhr.statusText
+                });
+            };
+            xhr.send()
+
+        })
+    }
+
     sendLastRequest = function(){
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/game/end', true);
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        //send result to server
         xhr.send(JSON.stringify({result: 0, group: this.group, nick: this.nick, age: this.age}));
         xhr.onreadystatechange = function() {
            if (xhr.readyState == XMLHttpRequest.DONE) {

@@ -34,6 +34,7 @@ import java.util.Enumeration;
 public class MainActivity extends Activity implements SensorEventListener {
 
     String ipAddress = "";
+    String currentPlayer = "";
     String command = "Recieved no commands";
     int port = 38301;
     InetSocketAddress inetSockAddress;
@@ -65,25 +66,37 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public void onMessageFromSocket(String message){
         System.out.println("Main activity got msg"+ message);
-        command = message;
+
+        if(message.startsWith("winner")){
+            currentPlayer = message.split(":")[1];
+            System.out.println("Change player: "+ currentPlayer);
+            return;
+        }
+
+        String tmp[] = message.split(":");
+        String currentID = tmp[0];
+        if(!currentID.equals(currentPlayer)){
+            return;
+        }
+        command = tmp[1];
+        System.out.println("Player: "+currentPlayer + "command: " + command);
+
+        sendSpeedCommand(command);
 
 
-        // Log.d("Main", message);
-        if(message.startsWith("["))
-            sendSpeedCommand(message);
     }
 
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //Toast.makeText(this, "IP: "+ ipAddress+":" + port, Toast.LENGTH_LONG).show();
-        ipField = (TextView) findViewById(R.id.IPAddressField);
+        /*8ipField = (TextView) findViewById(R.id.IPAddressField);
         ipField.setText(ipAddress+":"+port);
 
         commandField = (TextView) findViewById(R.id.CommandField);
-        commandField.setText(command);
+        commandField.setText(command);*/
 
-        System.out.println(command);
+        //System.out.println(command);
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             sendSpeedCommand(0, 0);
@@ -119,6 +132,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         try {
             if (mCommandService != null) {
                 mCommandService.write(toSend.getBytes("ASCII"));
+                Log.d("send command", toSend);
             }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -126,6 +140,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     private void sendSpeedCommand(String toSend) {
+        System.out.println("sendSpeedCommand: "+ toSend);
 
         try {
             if (mCommandService != null) {

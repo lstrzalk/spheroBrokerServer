@@ -12,10 +12,10 @@ import java.net.InetSocketAddress;
 public class MyWebSocketServer extends WebSocketServer {
 
     MainActivity activity;
-    String toPrint = "";
     String command = "";
-    //TextField scanButton = (Button) findViewById(R.id.button_scan);
-    TextView commandText;
+
+    String currentPlayerName = "";
+
 
 
     public MyWebSocketServer(InetSocketAddress address, MainActivity mainActivity) {
@@ -38,21 +38,24 @@ public class MyWebSocketServer extends WebSocketServer {
     @Override
     public void onMessage(WebSocket conn, String message) {
         Log.d("socket", message);
-        commandText = (TextView) activity.findViewById(R.id.CommandField);
-        commandText.setText(message);
-        activity.onMessageFromSocket(message);
 
+        if(message.startsWith("winner")){
+            currentPlayerName = message.split(":")[1];
+            System.out.println("Change player: "+ currentPlayerName);
+            return;
+        }
 
-        /*toPrint = message;
-        command = message;
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //activity.SocketMessegeRecievedField.setText(toPrint);
-                //activity.testCommand(command);
+        String tmp[] = message.split(":");
+        String currentID = tmp[0];
+        if(!currentID.equals(currentPlayerName)){
+            System.out.println(currentID + " is not a winner!");
+            conn.send("Bye");
+            return;
+        }
+        command = tmp[1];
+        System.out.println("Player: "+currentPlayerName + "command: " + command);
+        activity.onMessageFromSocket(command);
 
-            }
-        });*/
 
     }
 

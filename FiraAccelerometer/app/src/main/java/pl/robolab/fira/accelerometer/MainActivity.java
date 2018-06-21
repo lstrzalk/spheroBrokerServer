@@ -67,19 +67,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     public void onMessageFromSocket(String message){
         System.out.println("Main activity got msg"+ message);
 
-        if(message.startsWith("winner")){
-            currentPlayer = message.split(":")[1];
-            System.out.println("Change player: "+ currentPlayer);
-            return;
-        }
 
-        String tmp[] = message.split(":");
-        String currentID = tmp[0];
-        if(!currentID.equals(currentPlayer)){
-            return;
-        }
-        command = tmp[1];
-        System.out.println("Player: "+currentPlayer + "command: " + command);
 
         sendSpeedCommand(command);
 
@@ -89,15 +77,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        //Toast.makeText(this, "IP: "+ ipAddress+":" + port, Toast.LENGTH_LONG).show();
-        /*8ipField = (TextView) findViewById(R.id.IPAddressField);
-        ipField.setText(ipAddress+":"+port);
-
-        commandField = (TextView) findViewById(R.id.CommandField);
-        commandField.setText(command);*/
-
-        //System.out.println(command);
-
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             sendSpeedCommand(0, 0);
             if (exitToast.getView().isShown()) {
